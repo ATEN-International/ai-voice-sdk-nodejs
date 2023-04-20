@@ -65,5 +65,5 @@ class ConverterConfig {
 
 module.exports = {
     ConverterConfig,
-    Settings
+    Settings,
 };
