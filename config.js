@@ -4,7 +4,7 @@ class Settings {
     constructor() {
         this.textLimit = 1500;
         this.supportFileType = [".txt"];
-        this.eachTaskTextLimit = text_limit + 200;
+        this.eachTaskTextLimit = textLimit + 200;
         this.printLog = false;
     }
 }
@@ -17,7 +17,7 @@ class ConverterConfig {
         }
         this._token = token;
         this.setServer(serverUrl);
-        this.voice = Voice.NOETIC; // 使用enum Voice的預設值
+        this.voice = null; // 聲音預設值為null
         this._ssmlVersion = "";
         this._ssmlLang = "";
     }

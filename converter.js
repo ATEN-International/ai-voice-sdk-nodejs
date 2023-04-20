@@ -1,12 +1,12 @@
 const axios = require('axios');
-const fs = require('fs');
 
-const { Voice:Voice, ConverterStatus:ConverterStatus } = require('./enums');
+const { Voice: Voice, ConverterStatus: ConverterStatus } = require('./enums');
 // 等同於 const voice = require('./enums').Voice;
 //        +
 //        const converterStatus = require('./enums').ConverterStatus;
+const Tools = require('./tools').Tools;
 
-const status_and_error_codes = {
+const statusAndErrorCodes = {
     20001: '成功',
     40001: 'Request 必填參數不完整。',
     40002: 'SSML 格式錯誤。',
@@ -30,13 +30,55 @@ const status_and_error_codes = {
     40499: 'Unknown error. Can not get Restful API response, maybe "server url" is wrong.',
 }
 
+class ConverterResult {
+    /**
+     @param {ConverterStatus} status 轉換器的狀態
+     @param {Array<Object>} data [{"id": (int)task_id, "data": (byte)auido_data}]
+     @param {String} detail
+     @param {String} error_msg
+     */
+    constructor(status, data, detail, error_msg) {
+        this.status = status;
+        this.task_data = data;
+        this.detail = detail;
+        this.error_message = error_msg;
+    }
+
+    /**
+     * @param {String} filename
+     */
+    async save(filename = "aivoice") {
+        let task_list_length = this.task_data.length;
+        if (task_list_length > 0) {
+            let count = 1;
+            for (let each_data of this.task_data) {
+                let file_number = "-" + count;
+                if (task_list_length === 1) {
+                    file_number = "";
+                }
+
+                // 需要確認使否會是null
+                if (each_data['data'] !== null) {
+                    // 呼叫 Tools 的 save_wav_file 函式
+                    try {
+                        await new Tools().saveWavFile(filename + file_number, each_data['data']);
+                    } catch (error) {
+                        throw new Error(`Save wav file fail: ${error}`);
+                    }
+                }
+                count++;
+            }
+        }
+    }
+}
+
 class RestfulApiHandler {
     constructor(url, token) {
-        this._serverUrl = "SERVER_URL";
+        this._serverUrl = url;
         this.voice = Voice.NOETIC;
         this._ssmlVersion = "1.0.demo";
         this._ssmlLang = "zh-TW";
-        this._server_support_json_status_code = [200, 400, 500, 503]; // 401 server回傳會少帶code參數，所以暫時移除
+        this._serverSupportJsonStatusCode = [200, 400, 500, 503]; // 401 server回傳會少帶code參數，所以暫時移除
         this.axios = axios;
         // this.token = token
         this.config = {
@@ -45,7 +87,7 @@ class RestfulApiHandler {
                 'Content-Type': 'application/json'
             }
         };
-        this.config2 = {
+        this.configGetBinary = {
             responseType: 'arraybuffer',
             headers: {
                 'Authorization': 'Bearer ' + token,
@@ -54,10 +96,10 @@ class RestfulApiHandler {
         };
     }
 
-    _restfulSender(api_url, payload, use2 = false) {
+    _restfulSender(api_url, payload, getBinary = false) {
         let config = this.config;
-        if (use2) {
-            config = this.config2;
+        if (getBinary) {
+            config = this.configGetBinary;
         }
 
         // Return Promise Object
@@ -120,7 +162,7 @@ class RestfulApiHandler {
     async addTextTask(text) {
         const apiPath = "/api/v1.0/syn/syn_text";
         const payload = {
-            "orator_name": "Aurora_noetic",
+            "orator_name": this.voice,
             "text": text
         };
 
@@ -198,5 +240,6 @@ class VoiceConverter {
 
 module.exports = {
     RestfulApiHandler,
-    VoiceConverter
+    VoiceConverter,
+    ConverterResult
 }
