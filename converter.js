@@ -232,8 +232,8 @@ class ConverterResult {
 // }
 
 class VoiceConverter {
-    constructor() {
-        this._sender = new RestfulApiHandler();
+    constructor(config = ConverterConfig()) {
+        this._apiHandler = new RestfulApiHandler(config);
     }
 }
 

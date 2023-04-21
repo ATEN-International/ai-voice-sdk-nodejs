@@ -18,8 +18,8 @@ class ConverterConfig {
         this._token = token;
         this.setServer(serverUrl);
         this.voice = null; // 聲音預設值為null
-        this._ssmlVersion = "";
-        this._ssmlLang = "";
+        this._ssmlVersion = "1.0.demo";
+        this._ssmlLang = "zh-TW";
     }
 
     setToken(token = "") {
@@ -60,6 +60,14 @@ class ConverterConfig {
 
     getVoice() {
         return this.voice;
+    }
+
+    getSsmlVersion() {
+        return this._ssmlVersion;
+    }
+
+    getSsmlLang() {
+        return this._ssmlLang;
     }
 }
 

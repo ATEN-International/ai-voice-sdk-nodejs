@@ -2,41 +2,48 @@ const axios = require('axios');
 const fs = require('fs');
 
 const Voice = require('./enums').Voice;
-// const Settings = require('./config').Settings;
 const { ConverterConfig: ConverterConfig, Settings: Settings } = require('./config');
 
 class RestfulApiHandler {
-    constructor(url, token) {
-        this._serverUrl = url;
-        this.voice = Voice.NOETIC;
-        this._ssmlVersion = "1.0.demo";
-        this._ssmlLang = "zh-TW";
-        this._serverSupportJsonStatusCode = [200, 400, 500, 503]; // 401 server回傳會少帶code參數，所以暫時移除
+    constructor(config = ConverterConfig()) {
         this.axios = axios;
-        this.token = token
-        this.config = {
+
+        this._serverUrl = config.getServer();
+        this._token = config.getToken();
+        this.voice = config.getVoice();
+        this._ssmlVersion = config.getSsmlVersion();
+        this._ssmlLang = config.getSsmlLang();
+
+        this._serverSupportJsonStatusCode = [200, 400, 500, 503]; // 401 server回傳會少帶code參數，所以暫時移除
+
+        this.httpConfig = {
             headers: {
-                'Authorization': 'Bearer ' + this.token,
+                'Authorization': 'Bearer ' + this._token,
                 'Content-Type': 'application/json'
             }
         };
-        this.configGetBinary = {
+        this.httpConfigGetBinary = {
             responseType: 'arraybuffer',
             headers: {
-                'Authorization': 'Bearer ' + this.token,
+                'Authorization': 'Bearer ' + this._token,
                 'Content-Type': 'application/json'
             }
         };
+
+        // if (this.voice === null) {
+        //     throw new Error("Converter voice is null");
+        // }
+        // console.log(this._serverUrl, this._token, this.voice);
     }
 
-    _restfulSender(api_url, payload, getBinary = false) {
-        let config = this.config;
+    _restfulSender(apiUrl, payload, getBinary = false) {
+        let config = this.httpConfig;
         if (getBinary) {
-            config = this.configGetBinary;
+            config = this.httpConfigGetBinary;
         }
 
         // Return Promise Object
-        return this.axios.post(api_url, payload, config)
+        return this.axios.post(apiUrl, payload, config)
             .then(response => {
                 return response
             })
@@ -112,6 +119,10 @@ class RestfulApiHandler {
     }
 
     async addSsmlTask(ssmlText) {
+        if (this.voice === null) {
+            throw new Error("Converter voice is null");
+        }
+
         const apiPath = "/api/v1.0/syn/syn_ssml";
         const payload = {
             "ssml": `<speak xmlns="http://www.w3.org/2001/10/synthesis" version=\
@@ -165,7 +176,11 @@ ${ssmlText}\
     }
 
     updateConfig(config = ConverterConfig()) {
-        this._serverUrl = config.serverUrl;
+        this._serverUrl = config.getServer();
+        this._token = config.getToken();
+        this.voice = config.getVoice();
+        this._ssmlVersion = config.getSsmlVersion();
+        this._ssmlLang = config.getSsmlLang();
     }
 }
 
