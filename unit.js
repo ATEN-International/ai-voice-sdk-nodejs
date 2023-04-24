@@ -77,29 +77,41 @@ class RestfulApiHandler {
         if (result.status === 200) {
             // 處理 AxiosResponse
             if (result.headers["content-type"] === "application/json") {
-                console.log("Success");
+                if (Settings.printLog) {
+                    console.log("Restful API: Success");
+                }
                 return result.data;
             } else {
-                console.log("Error in 200");
+                if (Settings.printLog) {
+                    console.log("Error in 200");
+                }
                 return this._responseErrorHandler(result);
             }
         } else {
             // 處理 AxiosError
             if (typeof (result.response) !== "undefined") {
                 if (this._serverSupportJsonStatusCode.includes(result.response.status)) {
-                    console.log("Error in normal response,", result.response.status);
+                    if (Settings.printLog) {
+                        console.log("Error in normal response,", result.response.status);
+                    }
                     return result.response.data;
                 } else {
                     return this._responseErrorHandler(result.response);
                 }
             } else {
-                console.log("Error before send,", result.message)
+                if (Settings.printLog) {
+                    console.log("Error before send,", result.message)
+                }
                 return this._responseErrorHandler(result);
             }
         }
     }
 
     async addTextTask(text) {
+        if (this.voice === null) {
+            throw new Error("Converter voice is null");
+        }
+
         const apiPath = "/api/v1.0/syn/syn_text";
         const payload = {
             "orator_name": this.voice,
@@ -186,10 +198,10 @@ ${ssmlText}\
 
 class Tools {
     constructor() {
-        this._supportFileType = Settings().supportFileType;
+        this._supportFileType = new Settings().supportFileType;
     }
 
-    async saveWavFile(data, filename) {
+    async saveWavFile(filename, data) {
         // const fs = require('fs');
         try {
             await fs.promises.writeFile(`${filename}.wav`, Buffer.from(data));

@@ -4,7 +4,7 @@ class Settings {
     constructor() {
         this.textLimit = 1500;
         this.supportFileType = [".txt"];
-        this.eachTaskTextLimit = textLimit + 200;
+        this.eachTaskTextLimit = this.textLimit + 200;
         this.printLog = false;
     }
 }
