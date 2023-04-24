@@ -379,6 +379,21 @@ class TextEditor {
 
         this.text.splice(position, 0, ...textList);
     }
+
+    /**
+     * @param {string} filePath 檔案路徑
+     * @param {string} encode 編碼格式，預設為"utf-8"
+     */
+    openTextFile(filePath, encode = "utf-8") {
+        const extension = filePath.substr(filePath.lastIndexOf('.'));
+
+        if (this._supportFileType.includes(extension) === false) {
+            throw new TypeError(`Not support ${extension} type.`);
+        }
+
+        let text = new Tools().openFile(filePath, encode);
+        this.addText(text);
+    }
 }
 
 module.exports = {

@@ -210,6 +210,16 @@ class Tools {
             throw new Error(`Save wav file fail: ${error}`);
         }
     }
+
+    openFile(filePath, encode = "utf-8") {
+        let text = "";
+        try {
+            text = fs.readFileSync(filePath, encode);
+        } catch (error) {
+            throw new Error(`Read file fail. ${error}`);
+        }
+        return text;
+    }
 }
 
 module.exports = {
