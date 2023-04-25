@@ -1,9 +1,7 @@
 const { Voice: Voice, ConverterStatus: ConverterStatus } = require('./enums');
-// 等同於 const voice = require('./enums').Voice;
-//        +
-//        const converterStatus = require('./enums').ConverterStatus;
 const { RestfulApiHandler: RestfulApiHandler, Tools: Tools } = require('./unit');
-// const Tools = require('./unit').Tools;
+const { ConverterConfig: ConverterConfig, Settings: Settings } = require('./config');
+const TextEditor = require('./textedit').TextEditor;
 
 const statusAndErrorCodes = {
     20001: '成功',
@@ -29,41 +27,43 @@ const statusAndErrorCodes = {
     40499: 'Unknown error. Can not get Restful API response, maybe "server url" is wrong.',
 }
 
+/**
+ * @param {ConverterStatus} status 轉換器的狀態
+ * @param {Object} data [{"id": (int)task_id, "data": (byte)auido_data}]
+ * @param {string} detail
+ * @param {string} errorMsg
+ */
 class ConverterResult {
-    /**
-     @param {ConverterStatus} status 轉換器的狀態
-     @param {Array<Object>} data [{"id": (int)task_id, "data": (byte)auido_data}]
-     @param {String} detail
-     @param {String} error_msg
-     */
-    constructor(status, data, detail, error_msg) {
+    constructor(status, data, detail, errorMsg) {
         this.status = status;
-        this.task_data = data;
+        this.taskData = data;
         this.detail = detail;
-        this.error_message = error_msg;
+        this.errorMessage = errorMsg;
     }
 
     /**
-     * @param {String} filename
+     * @param {String} filename 檔案名稱，預設為("aivoice")
      */
     async save(filename = "aivoice") {
-        let task_list_length = this.task_data.length;
+        let task_list_length = this.taskData.length;
         if (task_list_length > 0) {
             let count = 1;
-            for (let each_data of this.task_data) {
+            for (let each_data of this.taskData) {
                 let file_number = "-" + count;
                 if (task_list_length === 1) {
                     file_number = "";
                 }
 
-                // 需要確認使否會是null
+                // 確認使否會是null
                 if (each_data['data'] !== null) {
                     // 呼叫 Tools 的 save_wav_file 函式
                     try {
                         await new Tools().saveWavFile(filename + file_number, each_data['data']);
                     } catch (error) {
-                        throw new Error(`Save wav file fail: ${error}`);
+                        throw new Error(`${error}`);
                     }
+                } else {
+                    throw new Error("No audio data.");
                 }
                 count++;
             }
@@ -71,169 +71,235 @@ class ConverterResult {
     }
 }
 
-// class RestfulApiHandler {
-//     constructor(url, token) {
-//         this._serverUrl = url;
-//         this.voice = Voice.NOETIC;
-//         this._ssmlVersion = "1.0.demo";
-//         this._ssmlLang = "zh-TW";
-//         this._serverSupportJsonStatusCode = [200, 400, 500, 503]; // 401 server回傳會少帶code參數，所以暫時移除
-//         this.axios = axios;
-//         // this.token = token
-//         this.config = {
-//             headers: {
-//                 'Authorization': 'Bearer ' + token,
-//                 'Content-Type': 'application/json'
-//             }
-//         };
-//         this.configGetBinary = {
-//             responseType: 'arraybuffer',
-//             headers: {
-//                 'Authorization': 'Bearer ' + token,
-//                 'Content-Type': 'application/json'
-//             }
-//         };
-//     }
-
-//     _restfulSender(api_url, payload, getBinary = false) {
-//         let config = this.config;
-//         if (getBinary) {
-//             config = this.configGetBinary;
-//         }
-
-//         // Return Promise Object
-//         return this.axios.post(api_url, payload, config)
-//             .then(response => {
-//                 return response
-//             })
-//             .catch(error => {
-//                 throw error
-//             });
-//     }
-
-//     _responseErrorHandler(result) {
-//         /*
-//         處理非200的response，以及將不是json格式或缺少資訊的response格式化
-//         */
-//         if (result.status == 404) {
-//             return { "data": "Not Found", "code": result.status };
-//         } else if (result.status == 401) {
-//             return { "data": { "status": "Not authorized." }, "code": result.status };
-//         } else if (result.status == 200) {
-//             return { "data": "Unknown error. Can not get Restful API response, maybe 'server url' is wrong.", "code": 40499 };
-//         } else {
-//             if (result.message == "self-signed certificate") {
-//                 return { "data": "Do not support self-signed certificate server.", "code": 40199 };
-//             } else {
-//                 return { "data": result.data, "code": result.status };
-//             }
-//         }
-//     }
-
-//     _responseHandler(result) {
-//         // result 會有2種型態 AxiosError(裡面的response為'AxiosResponse') / AxiosResponse
-//         // return json格式
-//         if (result.status === 200) {
-//             // 處理 AxiosResponse
-//             if (result.headers["content-type"] === "application/json") {
-//                 console.log("Success");
-//                 return result.data;
-//             } else {
-//                 console.log("Error in 200");
-//                 return this._responseErrorHandler(result);
-//             }
-//         } else {
-//             // 處理 AxiosError
-//             if (typeof (result.response) !== "undefined") {
-//                 if (this._serverSupportJsonStatusCode.includes(result.response.status)) {
-//                     console.log("Error in normal response,", result.response.status);
-//                     return result.response.data;
-//                 } else {
-//                     return this._responseErrorHandler(result.response);
-//                 }
-//             } else {
-//                 console.log("Error before send,", result.message)
-//                 return this._responseErrorHandler(result);
-//             }
-//         }
-//     }
-
-//     async addTextTask(text) {
-//         const apiPath = "/api/v1.0/syn/syn_text";
-//         const payload = {
-//             "orator_name": this.voice,
-//             "text": text
-//         };
-
-//         if (payload['text'].length > 2000) {
-//             return { "data": "字數超過限制值", "code": 40010 };
-//         }
-
-//         try {
-//             const result = await this._restfulSender((this._serverUrl + apiPath), payload);
-//             return this._responseHandler(result);
-//         } catch (error) {
-//             return this._responseHandler(error);
-//         }
-//     }
-
-//     async addSsmlTask(ssmlText) {
-//         const apiPath = "/api/v1.0/syn/syn_ssml";
-//         const payload = {
-//             "ssml": `<speak xmlns="http://www.w3.org/2001/10/synthesis" version=\
-// "${this._ssmlVersion}" xml:lang="${this._ssmlLang}"><voice name="${this.voice}">\
-// ${ssmlText}\
-// </voice></speak>`
-//         };
-
-//         if (payload['ssml'].length > 2000) {
-//             return { "data": "字數超過限制值", "code": 40010 };
-//         }
-
-//         try {
-//             const result = await this._restfulSender((this._serverUrl + apiPath), payload);
-//             return this._responseHandler(result);
-//         } catch (error) {
-//             return this._responseHandler(error);
-//         }
-//     }
-
-//     async getTaskStatus(task_id) {
-//         const apiPath = "/api/v1.0/syn/task_status";
-//         const payload = {
-//             "task_id": task_id,
-//         };
-
-//         try {
-//             const result = await this._restfulSender((this._serverUrl + apiPath), payload);
-//             return this._responseHandler(result);
-//         } catch (error) {
-//             return this._responseHandler(error);
-//         }
-//     }
-
-//     async getTaskAudio(task_id) {
-//         const apiPath = "/api/v1.0/syn/get_file";
-//         const payload = {
-//             "filename": `${task_id}.wav`,
-//         };
-
-//         try {
-//             const result = await this._restfulSender((this._serverUrl + apiPath), payload, true);
-//             if (result.headers["content-type"] === "audio/wav") {
-//                 return { "data": result.data, "code": 20001 };
-//             } else {
-//                 return this._responseHandler(result);
-//             }
-//         } catch (error) {
-//             return this._responseHandler(error);
-//         }
-//     }
-// }
-
 class VoiceConverter {
     constructor(config = ConverterConfig()) {
+        this._text = [];
+        this._taskList = [];
+        this._taskEachTextLimit = new Settings().eachTaskTextLimit;
         this._apiHandler = new RestfulApiHandler(config);
+        this.text = new TextEditor(this._text);
+    }
+
+    _createTaskList() {
+        this._taskList.length = 0;
+
+        let length = 0
+        let count = 0
+        let i = 0;
+        // this._taskList.splice(0,{"id": "", "text": ""});
+        this._taskList.push({ "id": "", "text": "" });
+        for (i = 0; i < this._text.length - 1; i++) {
+            length += this._text[i]._length;
+            this._taskList[count]["text"] += this._text[i]._text;
+            if (length + this._text[i + 1]._length > this._taskEachTextLimit) {
+                // console.log(`over limit in ${i} | ${this._text[i]._text} | ${length}`);
+                this._taskList.push({ id: "", text: "" });
+                count += 1;
+                length = 0;
+            }
+        }
+
+        // console.log(`---> ${i} <---`);
+
+        // if (this._text.length > 1) {
+        //   i += 1;
+        // }
+        if (length + this._text[i]._length > this._taskEachTextLimit) {
+            this._taskList.push({ id: "", text: this._text[i]._text });
+        } else {
+            this._taskList[count]["text"] += this._text[i]._text;
+        }
+    }
+
+    _translateResultCode(resultJson) {
+        code = resultJson['code'];
+        if (statusAndErrorCodes.includes(code)) {
+            return statusAndErrorCodes[code];
+        } else {
+            return resultJson['data'];
+        }
+    }
+
+    updateConfig(config) {
+        this._apiHandler.updateConfig(config);
+    }
+
+    getTaskList() {
+        let result = [];
+        if (this._taskList.length < 1) {
+            console.log("Task list is empty.");
+            return result;
+        }
+
+        for (let task of this._taskList) {
+            result.push({ id: task.id, text: task.text });
+        }
+        return result;
+    }
+
+    async run2() {
+        this._createTaskList();
+        console.log(`Text => ${this._text}`);
+        for (let task of this._taskList) {
+            console.log(task.text);
+        }
+    }
+
+    /**
+     * @param {string} intervalTime：當伺服器繁忙時，重試合成任務之間的間隔時間，最小值=0（不重試），最大值=10
+     * @param {string} isWaitSpeech：是否等待語音合成完成，True=執行後會等待語音合成結束，結果與（func）get_speech相同
+     */
+    async run(intervalTime = 0, isWaitSpeech = false) {
+        if (typeof intervalTime !== "number") {
+            throw new TypeError("Parameter 'intervalTime' type error.");
+        }
+        if (intervalTime < 0 || intervalTime > 10) {
+            throw new ValueError("Parameter 'intervalTime' value error.");
+        }
+
+        if (this._text.length < 1) {
+            throw new Error("Text is empty.");
+        }
+
+        this._createTaskList();
+
+        let status = ConverterStatus.ConverterStartUp;
+        let taskData = [];
+        let detail = "";
+        let errorMsg = "";
+
+        const taskNumber = this._taskList.length;
+        let taskCount = 1;
+        let resultJson = { "data": "task start", "code": 50301 };
+        for (let task of this._taskList) {
+
+            while (resultJson['code'] === 50301) {
+                console.log(`Waitting for server...`);
+
+                resultJson = await this._apiHandler.addSsmlTask(task.text);
+
+                if (intervalTime === 0 || resultJson['code'] === 20001) {
+                    break;
+                }
+
+                await new Promise((resolve) => setTimeout(resolve, intervalTime * 1000));
+                // ConverVoiceRunning
+            }
+
+            if (resultJson['code'] === 20001) {
+                task.id = resultJson['data']['task_id'];
+                if (Settings.print_log) {
+                    console.log(`[INFO] Task start, task id: '${task.id}'`);
+                }
+
+                status = ConverterStatus.ConverVoiceStart;
+                detail = `Start Convert: (${taskCount}/${taskNumber})`;
+                taskData.push({ id: task.id, data: null });
+            } else {
+                status = ConverterStatus.ConverVoiceFail;
+                if (resultJson['code'] === 50301) {
+                    status = ConverterStatus.ServerBusy;
+                }
+                errorMsg = `${this._translateResultCode(resultJson)}`;
+                break;
+            }
+
+            if (isWaitSpeech) {
+                let taskStatus = "RUNNING";
+                while (taskStatus === "RUNNING") {
+                    resultJson = await this._apiHandler.getTaskStatus(task.id);
+                    taskStatus = resultJson['data']['status'];
+                    await new Promise((resolve) => setTimeout(resolve, 1000));
+                    // ConverVoiceRunning
+                }
+
+                if (resultJson['code'] === 20001) {
+                    status = ConverterStatus.ConverVoiceCompleted;
+                } else {
+                    status = ConverterStatus.ConverVoiceFail;
+                    errorMsg = `${this._translateResultCode(resultJson)} (In process ${taskCount}/${taskNumber})`;
+                    break;
+                }
+            }
+
+            taskCount++;
+        }
+
+        if (resultJson['code'] === 20001) {
+            if (isWaitSpeech) {
+                return await this.getSpeech();
+            }
+            return new ConverterResult(status, taskData, detail, errorMsg);
+        }
+
+        if (taskData.length === 0) {
+            taskData.push({ id: "0", data: null });
+        }
+
+        // status = ConverterStatus.ConverVoiceFail
+        return new ConverterResult(ConverterStatus.ConverVoiceFail, taskData, "", errorMsg);
+    }
+
+    async checkStatus() {
+        if (this._taskList.length < 1) {
+            throw new Error("Converter task list is empty, Please start convert first.");
+        }
+
+        let status = ConverterStatus.ConverterStartUp;
+        let taskData = [];
+        let detail = "";
+        let errorMsg = "";
+
+        const taskNumber = this._taskList.length;
+        let taskCount = 1;
+        for (let task of this._taskList) {
+            const resultJson = await this._apiHandler.getTaskStatus(task.id);
+
+            if (resultJson['code'] === 20001) {
+                if (Settings.printLog) {
+                    console.log(`[INFO] Task(${task["id"].slice(0, 8)}) convert status '${resultJson['data']['status'].toLowerCase()}'`);
+                }
+
+                if (resultJson['data']['status'] === "SUCCESS") {
+                    status = ConverterStatus.ConverVoiceCompleted;
+                } else if (resultJson['data']['status'] === "RUNNING") {
+                    status = ConverterStatus.ConverVoiceRunning;
+                    detail = `Voice Converting: Task(${taskCount}/${taskNumber})`;
+                } else {
+                    // 待確認
+                    errorMsg = this._translateResultCode(resultJson);
+                    status = ConverterStatus.ConverVoiceFail;
+                }
+            } else {
+                errorMsg = this._translateResultCode(resultJson);
+                status = ConverterStatus.ConverVoiceFail;
+            }
+
+            taskData.push({ id: task.id, data: null });
+            taskCount += 1;
+        }
+        return new ConverterResult(status, taskData, detail, errorMsg);
+    }
+
+    async getSpeech() {
+        if (this._taskList.length < 1) {
+            throw new Error("Converter task list is empty, Please start convert first.");
+        }
+
+        let taskData = [];
+        let errorMsg = "";
+        for (let task of this._taskList) {
+            const resultJson = await this._apiHandler.getTaskAudio(task.id);
+
+            if (resultJson['code'] !== 20001) {
+                errorMsg = this._translateResultCode(resultJson);
+                taskData.push({ id: task.id, data: null });
+                return new ConverterResult(ConverterStatus.GetSpeechFail, taskData, "", errorMsg)
+            }
+
+            taskData.push({ id: task.id, data: resultJson['data'] });
+        }
+        return new ConverterResult(ConverterStatus.GetSpeechSuccess, taskData, "", errorMsg)
     }
 }
 
