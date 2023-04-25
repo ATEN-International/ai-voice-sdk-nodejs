@@ -1,5 +1,5 @@
 const { Voice: Voice, ConverterStatus: ConverterStatus } = require('./enums');
-const { RestfulApiHandler: RestfulApiHandler, Tools: Tools } = require('./unit');
+const { RestfulApiHandler: RestfulApiHandler, Tools: Tools } = require('./units');
 const { ConverterConfig: ConverterConfig, Settings: Settings } = require('./config');
 const TextEditor = require('./textedit').TextEditor;
 
@@ -112,8 +112,8 @@ class VoiceConverter {
     }
 
     _translateResultCode(resultJson) {
-        code = resultJson['code'];
-        if (statusAndErrorCodes.includes(code)) {
+        const code = resultJson['code'];
+        if (code in statusAndErrorCodes) {
             return statusAndErrorCodes[code];
         } else {
             return resultJson['data'];
@@ -170,9 +170,9 @@ class VoiceConverter {
 
         const taskNumber = this._taskList.length;
         let taskCount = 1;
-        let resultJson = { "data": "task start", "code": 50301 };
+        let resultJson = {};
         for (let task of this._taskList) {
-
+            resultJson = { "data": "task start", "code": 50301 };
             while (resultJson['code'] === 50301) {
                 console.log(`Waitting for server...`);
 

@@ -1,5 +1,5 @@
 const Settings = require('./config').Settings;
-const Tools = require('./unit').Tools;
+const Tools = require('./units').Tools;
 
 class TextParagraph {
     constructor(text) {
