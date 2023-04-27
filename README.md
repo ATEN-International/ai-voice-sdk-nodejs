@@ -30,7 +30,7 @@ API == v1.x
 ## 開始使用
 
 ### 安裝
- - 透過`npm`安裝套件 (Comming soon)
+ - 透過`npm`安裝套件 (Coming soon)
 <br><br>
 
 
@@ -309,8 +309,8 @@ Get speech data success.
 
 <br><br>
 
-### 範例程式 (Comming soon)
+### 範例程式 (Coming soon)
 <br><br>
 
-### 更多範例 (Comming soon)
+### 更多範例 (Coming soon)
 <br><br>
