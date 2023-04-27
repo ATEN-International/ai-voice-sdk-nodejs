@@ -12,7 +12,6 @@ class Settings {
 class ConverterConfig {
     constructor(token = "", serverUrl = 'https://www.aivoice.com.tw') {
         if (typeof token !== "string") {
-            // throw new TypeError("參數 'token(str)' 型別錯誤。");
             throw new TypeError("Parameter 'token(str)' type error.");
         }
         this._token = token;
@@ -35,13 +34,11 @@ class ConverterConfig {
 
     setServer(serverUrl = "") {
         if (typeof serverUrl !== "string") {
-            // throw new TypeError("參數 'serverUrl(str)' 型別錯誤。");
             throw new TypeError("Parameter 'server_url(str)' type error.");
         }
         if (serverUrl.indexOf("http") === 0) {
             this._serverUrl = serverUrl;
         } else {
-            // throw new TypeError("請檢查網址，應該以 'http' 或 'https' 開頭。");
             throw new TypeError("Please check url, it should be with 'http' or 'https'.");
         }
     }
@@ -52,7 +49,6 @@ class ConverterConfig {
 
     setVoice(voice = Voice.NOETIC) {
         if (!(voice instanceof Voice)) {
-            // throw new TypeError("參數 'voice(Voice)' 型別錯誤。");
             throw new TypeError("Parameter 'voice(Voice)' type error.");
         }
         this.voice = voice;

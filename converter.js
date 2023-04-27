@@ -71,6 +71,9 @@ class ConverterResult {
     }
 }
 
+/**
+ * @param {ConverterConfig} config 轉換器設定檔
+ */
 class VoiceConverter {
     constructor(config = ConverterConfig()) {
         this._text = [];
@@ -120,6 +123,9 @@ class VoiceConverter {
         }
     }
 
+    /**
+     * @param {ConverterConfig} config 轉換器設定檔
+     */
     updateConfig(config) {
         this._apiHandler.updateConfig(config);
     }
@@ -135,14 +141,6 @@ class VoiceConverter {
             result.push({ id: task.id, text: task.text });
         }
         return result;
-    }
-
-    async run2() {
-        this._createTaskList();
-        console.log(`Text => ${this._text}`);
-        for (let task of this._taskList) {
-            console.log(task.text);
-        }
     }
 
     /**
