@@ -220,6 +220,106 @@ class TextEditor {
         this.text.splice(position, 0, ...textList);
     }
 
+    /**
+     * 輸入的參數，若超過範圍值，皆以最大/最小值替代
+     * @param {string} text 加入的文字
+     * @param {number} rate 調整語速, 最小值=0.8, 最大值=1.2
+     * @param {number} pitch 調整音調, 最小值=-2, 最大值=2
+     * @param {number} volume 調整音量, 最小值=-6, 最大值=6
+     * @param {number} position 文字加入的位置，position = -1 或大於段落總數時會加在最後
+     */
+    addWebpageText(text, rate = 1.0, pitch = 0, volume = 0.0, position = -1) {
+        if (typeof position !== 'number') {
+            throw new TypeError("Parameter 'position(int)' type error.");
+        }
+
+        if (typeof text !== 'string') {
+            throw new TypeError("Parameter 'text(str)' type error.");
+        }
+
+        if (typeof rate !== 'number') {
+            throw new TypeError("Parameter 'rate(float)' type error.");
+        }
+
+        if (typeof pitch !== 'number') {
+            throw new TypeError("Parameter 'pitch(int)' type error.");
+        }
+
+        if (typeof volume !== 'number') {
+            throw new TypeError("Parameter 'volume(float)' type error.");
+        }
+
+        if (position === -1) {
+            position = this.text.length + 1;
+        }
+
+        const textList = this._checkTextLength(text);
+        const limit = this._textLimit;
+        let count = 0;
+
+        for (let textEach of textList) {
+            let tags = [...textEach._text.matchAll(/\[:([\s\S]*?)\]/g)];
+            let length = textEach._length;
+
+            for (let tag of tags) {
+                let tagStart = tag.index;
+                let tagEnd = tagStart + (tag[0].length);
+
+                if (textEach._text[tagEnd - 2] === "秒") {
+                    length += 15; // ssml break tag 長度最大為22 比原本多15
+                } else {
+                    if (textEach._text[tag.index - 1] === "]") { // XXX workaround 判斷機制能再改
+                        continue;
+                    }
+                    length += 51; // ssml break tag 長度最大(單一文字)為58 比原本多51
+                }
+
+                if (length > limit) {
+                    textList.splice(count + 1, 0, new TextParagraph(textEach._text.slice(tagEnd)));
+                    textList[count].update(textEach._text.slice(0, tagEnd));
+                    textEach._text = textEach._text.slice(0, tagEnd);
+                    break;
+                }
+            }
+
+            // rematch
+            let shift = 0;
+            let new_tag = "";
+            let new_text = textEach._text;
+            tags = [...textEach._text.matchAll(/\[:([\s\S]*?)\]/g)];
+
+            for (let tag of tags) {
+                let tagStart = tag.index;
+                let tagEnd = tagStart + (tag[0].length);
+
+                if (textEach._text[tagEnd - 2] === "秒") {
+                    let break_time = parseFloat(textEach._text.slice(tagStart + 2, tagEnd - 2)) * 1000;
+                    new_tag = this._addBreak(break_time);
+                    new_text = new_text.slice(0, tagStart + shift) + new_tag + new_text.slice(tagEnd + shift);
+                    console.log(new_text);
+                } else {
+                    if (textEach._text[tag.index - 1] === "]") { // XXX workaround 判斷機制能再改
+                        new_tag = "";
+                        continue;
+                    }
+                    let word = textEach._text[tagStart - 1];
+                    let ph = textEach._text.slice(tagStart + 2, tagEnd - 1);
+                    new_tag = this._addPhoneme(word, ph);
+                    new_text = new_text.slice(0, tagStart + shift - 1) + new_tag + new_text.slice(tagEnd + shift);
+                    shift--;
+                    console.log(new_text);
+                }
+                shift += new_tag.length - tagEnd + tagStart;
+            }
+            textList[count].update(this._addProsody(new_text, rate, pitch, volume));
+            count++;
+        }
+        this.text.splice(position, 0, ...textList);
+    }
+
+    /**
+     * 獲得文章清單
+     */
     getText() {
         if (this.text.length < 1) {
             console.log("Text is empty.");
