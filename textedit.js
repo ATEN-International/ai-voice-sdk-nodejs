@@ -48,19 +48,25 @@ class TextEditor {
         return count * 6;
     }
 
+    /**
+     * 檢查傳入的文字有沒有超出限制，如果超出限制會以標點符號分割字串
+     */
     _checkTextLength(text) {
-        /**
-         * 檢查傳入的文字有沒有超出限制，如果超出限制會以標點符號分割字串
-         */
-        // let textLimit = 30;
+        let limit = this._textLimit;
         let result = [];
         const textLength = text.length;
         let mergeStartPosition = 0;
-        let splitPosition = this._textLimit;
-        // let splitPosition = textLimit;
+        let splitPosition = limit;
         const punctuation = ['。', '！', '!', '？', '?', '\n', '\t', '，', ',', '、', '　', ' ', '（', '）', '(', ')', '「', '」', '；', '﹔'];
 
+        let reservedLenth = 0;
         while (splitPosition < textLength) {
+            reservedLenth = this._countReservedWord(text.slice(mergeStartPosition, splitPosition));
+            if (reservedLenth >= limit) {
+                throw new Error("Use too much reserved word.")
+            }
+            splitPosition -= reservedLenth
+
             // 從分割點開始向前尋找標點符號
             for (let i = splitPosition - 1; i > mergeStartPosition; i--) {
                 if (punctuation.includes(text[i])) {
@@ -73,8 +79,11 @@ class TextEditor {
             // 實際分割點(標點符號位置)設為新分割點
             mergeStartPosition = splitPosition;
 
-            splitPosition += this._textLimit;
-            // splitPosition += textLimit; // 改這
+            splitPosition += limit;
+        }
+
+        if (this._countReservedWord(text.slice(mergeStartPosition)) > 200) {
+            throw new Error("Use too much reserved word.")
         }
 
         result.push(new TextParagraph(text.slice(mergeStartPosition)));
