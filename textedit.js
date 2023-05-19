@@ -124,12 +124,15 @@ class TextEditor {
         const volumeMin = -6.0;
         const volumeDefault = 0.0;
 
+        let isDefaultValue = true;
+
         if (typeof pitch !== "number") {
             // console.log("[DEBUG] Pitch type wrong");
             pitch = parseInt(pitch);
         }
 
         if (rate !== rateDefault) {
+            isDefaultValue = false;
             if (rate > rateMax) {
                 // console.log("[DEBUG] Rate out of range, use the maximum to translate.");
                 tagRate = ` rate="${rateMax}"`;
@@ -142,6 +145,7 @@ class TextEditor {
         }
 
         if (pitch !== pitchDefault) {
+            isDefaultValue = false;
             if (pitch > pitchMax) {
                 // console.log("[DEBUG] Pitch out of range, use the maximum to translate.");
                 tagPitch = ` pitch="+${pitchMax}st"`;
@@ -158,6 +162,7 @@ class TextEditor {
         }
 
         if (volume !== volumeDefault) {
+            isDefaultValue = false;
             if (volume > volumeMax) {
                 // console.log("[DEBUG] Volume out of range, use the maximum to translate.");
                 tagVolume = ` volume="+${volumeMax}dB"`;
@@ -173,6 +178,10 @@ class TextEditor {
             }
         }
 
+        if (isDefaultValue === true) {
+            tagRate = ' rate="1.0"';
+        }
+
         return `<prosody${tagRate}${tagPitch}${tagVolume}>${text}</prosody>`;
     }
 
@@ -185,8 +194,10 @@ class TextEditor {
         if (typeof (position) !== 'number') {
             throw new TypeError("Parameter 'position(int)' type error.");
         }
+        if (typeof text !== 'string') {
+            throw new TypeError("Parameter 'text(str)' type error.");
+        }
 
-        // const textList = this._checkTextLength(text);
         const textList = this._checkTextLength(text);
 
         if (position === -1) {
@@ -212,6 +223,9 @@ class TextEditor {
         return result
     }
 
+    /**
+     * 顯示文章清單
+     */
     show() {
         if (this.text.length < 1) {
             console.log("Text is empty.");
@@ -227,17 +241,13 @@ class TextEditor {
      * @param {number} position 要刪除的段落
      */
     deleteParagraph(position) {
-        /**
-         * position：要刪除的段落
-         * return：[true, false]
-         */
         if (typeof position !== 'number') {
             throw new TypeError("Parameter 'position(number)' type error.");
         }
 
         const textLength = this.text.length;
         if (textLength === 0) {
-            console.log("[INTO] Text is empty.");
+            console.log("Text is empty.");
             return true;
         }
 
@@ -249,6 +259,9 @@ class TextEditor {
         return true;
     }
 
+    /**
+     * 清除文章所有內容
+     */
     clear() {
         this.text.length = 0;
     }
@@ -259,14 +272,16 @@ class TextEditor {
      * @param {number} position 文字加入的位置，position = -1 或大於段落總數時會加在最後
      */
     insertPhoneme(text, ph, position = -1) {
-        /**
-         * text：加入的文字
-         *  ph ：指定的發音
-         * position：文字加入的位置，position = -1 或大於段落總數時會加在最後
-         */
-
         if (typeof (position) !== 'number') {
             throw new TypeError("Parameter 'position(int)' type error.");
+        }
+
+        if (typeof text !== 'string') {
+            throw new TypeError("Parameter 'text(str)' type error.");
+        }
+
+        if (typeof ph !== 'string') {
+            throw new TypeError("Parameter 'text(str)' type error.");
         }
 
         const textList = this._checkTextLength(text);
@@ -312,6 +327,14 @@ class TextEditor {
      * @param {number} position 文字加入的位置，position = -1 或大於段落總數時會加在最後
      */
     insertProsody(text, rate = 1.0, pitch = 0, volume = 0.0, position = -1) {
+        if (typeof position !== 'number') {
+            throw new TypeError("Parameter 'position(int)' type error.");
+        }
+
+        if (typeof text !== 'string') {
+            throw new TypeError("Parameter 'text(str)' type error.");
+        }
+
         if (typeof rate !== 'number') {
             throw new TypeError("Parameter 'rate(float)' type error.");
         }
@@ -322,10 +345,6 @@ class TextEditor {
 
         if (typeof volume !== 'number') {
             throw new TypeError("Parameter 'volume(float)' type error.");
-        }
-
-        if (typeof position !== 'number') {
-            throw new TypeError("Parameter 'position(int)' type error.");
         }
 
         const textList = this._checkTextLength(text);
@@ -351,6 +370,18 @@ class TextEditor {
      * @param {number} position 文字加入的位置，position = -1 或大於段落總數時會加在最後
      */
     insertProsodyAndPhoneme(text, ph, rate = 1.0, pitch = 0, volume = 0.0, position = -1) {
+        if (typeof position !== 'number') {
+            throw new TypeError("Parameter 'position(int)' type error.");
+        }
+
+        if (typeof text !== 'string') {
+            throw new TypeError("Parameter 'text(str)' type error.");
+        }
+
+        if (typeof ph !== 'string') {
+            throw new TypeError("Parameter 'text(str)' type error.");
+        }
+
         if (typeof rate !== 'number') {
             throw new TypeError("Parameter 'rate(float)' type error.");
         }
@@ -361,10 +392,6 @@ class TextEditor {
 
         if (typeof volume !== 'number') {
             throw new TypeError("Parameter 'volume(float)' type error.");
-        }
-
-        if (typeof position !== 'number') {
-            throw new TypeError("Parameter 'position(int)' type error.");
         }
 
         const textList = this._checkTextLength(text);
@@ -383,8 +410,13 @@ class TextEditor {
     /**
      * @param {string} filePath 檔案路徑
      * @param {string} encode 編碼格式，預設為"utf-8"
+     * @param {number} position 文字加入的位置，position = -1 或大於段落總數時會加在最後
      */
-    openTextFile(filePath, encode = "utf-8") {
+    openTextFile(filePath, encode = "utf-8", position = -1) {
+        if (typeof position !== 'number') {
+            throw new TypeError("Parameter 'position(int)' type error.");
+        }
+
         const extension = filePath.substr(filePath.lastIndexOf('.'));
 
         if (this._supportFileType.includes(extension) === false) {
@@ -392,7 +424,7 @@ class TextEditor {
         }
 
         let text = new Tools().openFile(filePath, encode);
-        this.addText(text);
+        this.addText(text, position);
     }
 }
 
