@@ -43,29 +43,35 @@ class ConverterResult {
 
     /**
      * @param {String} filename 檔案名稱，預設為("aivoice")
+     * @param {Boolean} isMerge 如果音檔數量超過一個，是否將其合併為一個檔案
      */
-    async save(filename = "aivoice") {
+    async save(filename = "aivoice", isMerge = false) {
         let task_list_length = this.taskData.length;
         if (task_list_length > 0) {
-            let count = 1;
-            for (let each_data of this.taskData) {
-                let file_number = "-" + count;
-                if (task_list_length === 1) {
-                    file_number = "";
-                }
-
-                // 確認使否會是null
-                if (each_data['data'] !== null) {
-                    // 呼叫 Tools 的 save_wav_file 函式
-                    try {
-                        await new Tools().saveWavFile(filename + file_number, each_data['data']);
-                    } catch (error) {
-                        throw new Error(`${error}`);
+            if (isMerge & task_list_length > 1) {
+                let audioData = []
+                for (let each_data of this.taskData) {
+                    if (each_data.data === null) {
+                        throw new Error("No audio data.");
                     }
-                } else {
-                    throw new Error("No audio data.");
+                    audioData.push(each_data.data);
                 }
-                count++;
+                await new Tools().mergeWavFile(filename, audioData);
+            } else {
+                let count = 1;
+                for (let each_data of this.taskData) {
+                    if (each_data.data === null) {
+                        throw new Error("No audio data.");
+                    }
+
+                    let file_number = "-" + count;
+                    if (task_list_length === 1) {
+                        file_number = "";
+                    }
+
+                    await new Tools().saveWavFile(filename + file_number, each_data.data);
+                    count++;
+                }
             }
         }
     }

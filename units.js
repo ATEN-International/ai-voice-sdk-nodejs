@@ -1,5 +1,6 @@
 const axios = require('axios');
 const fs = require('fs');
+const WaveFile = require('wavefile').WaveFile;
 
 const Voice = require('./enums').Voice;
 const { ConverterConfig: ConverterConfig, Settings: Settings } = require('./config');
@@ -25,11 +26,6 @@ class RestfulApiHandler {
                 'Content-Type': 'application/json'
             }
         };
-
-        // if (this.voice === null) {
-        //     throw new Error("Converter voice is null");
-        // }
-        // console.log(this._serverUrl, this._token, this.voice);
     }
 
     _updateHeader() {
@@ -126,14 +122,12 @@ class RestfulApiHandler {
     }
 
     async addTextTask(text) {
-        // if (this.voice === null) {
         if (this._config.getVoice() === null) {
             throw new Error("Converter voice is null");
         }
 
         const apiPath = "/api/v1.0/syn/syn_text";
         const payload = {
-            // "orator_name": this.voice,
             "orator_name": this._config.getVoice(),
             "text": text
         };
@@ -143,7 +137,6 @@ class RestfulApiHandler {
         }
 
         try {
-            // const result = await this._restfulSender((this._serverUrl + apiPath), payload);
             const result = await this._restfulSender((this._config.getServer() + apiPath), payload);
             return this._responseHandler(result);
         } catch (error) {
@@ -152,7 +145,6 @@ class RestfulApiHandler {
     }
 
     async addSsmlTask(ssmlText) {
-        // if (this.voice === null) {
         if (this._config.getVoice() === null) {
             throw new Error("Converter voice is null");
         }
@@ -174,7 +166,6 @@ ${ssmlText}\
         }
 
         try {
-            // const result = await this._restfulSender((this._serverUrl + apiPath), payload);
             const result = await this._restfulSender((this._config.getServer() + apiPath), payload);
             return this._responseHandler(result);
         } catch (error) {
@@ -189,7 +180,6 @@ ${ssmlText}\
         };
 
         try {
-            // const result = await this._restfulSender((this._serverUrl + apiPath), payload);
             const result = await this._restfulSender((this._config.getServer() + apiPath), payload);
             return this._responseHandler(result);
         } catch (error) {
@@ -204,7 +194,6 @@ ${ssmlText}\
         };
 
         try {
-            // const result = await this._restfulSender((this._serverUrl + apiPath), payload, true);
             const result = await this._restfulSender((this._config.getServer() + apiPath), payload, true);
             if (result.headers["content-type"] === "audio/wav") {
                 return { "data": result.data, "code": 20001 };
@@ -223,11 +212,29 @@ class Tools {
     }
 
     async saveWavFile(filename, data) {
-        // const fs = require('fs');
         try {
             await fs.promises.writeFile(`${filename}.wav`, Buffer.from(data));
         } catch (error) {
-            // console.error('Error saving audio file:', error);
+            throw new Error(`Save wav file fail: ${error}`);
+        }
+    }
+
+    async mergeWavFile(filename, audioDataList) {
+        try {
+            const wave = new WaveFile();
+            wave.fromBuffer(audioDataList[0]);
+
+            const mergedWave = Object.assign(new WaveFile(), wave);
+            let mergedData = [mergedWave.data.samples];
+            for (let i = 1; i < audioDataList.length; i++) {
+                wave.fromBuffer(audioDataList[i]);
+                mergedWave.data.chunkSize = mergedWave.data.chunkSize + wave.data.chunkSize;
+                mergedData.push(wave.data.samples);
+            }
+            mergedWave.data.samples = Buffer.concat(mergedData);
+
+            await fs.promises.writeFile(`${filename}.wav`, mergedWave.toBuffer());
+        } catch (error) {
             throw new Error(`Save wav file fail: ${error}`);
         }
     }
