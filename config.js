@@ -3,8 +3,9 @@ const Voice = require('./enums').Voice;
 class Settings {
     constructor() {
         this.textLimit = 1500;
+        this.elasticValue = 200;
         this.supportFileType = [".txt"];
-        this.eachTaskTextLimit = this.textLimit + 200;
+        this.eachTaskTextLimit = this.textLimit + this.elasticValue;
         this.printLog = false;
     }
 }
@@ -14,11 +15,21 @@ class ConverterConfig {
         if (typeof token !== "string") {
             throw new TypeError("Parameter 'token(str)' type error.");
         }
+        if (typeof serverUrl !== "string") {
+            throw new TypeError("Parameter 'server_url(str)' type error.");
+        }
+        if (serverUrl.indexOf("http") !== 0) {
+            throw new TypeError("Please check url, it should be with 'http' or 'https'.");
+        }
+
         this._token = token;
+        this._serverUrl = "";
         this.setServer(serverUrl);
         this.voice = null; // 聲音預設值為null
         this._ssmlVersion = "1.0.demo";
         this._ssmlLang = "zh-TW";
+
+        this.voiceValues = Object.values(Voice);
     }
 
     setToken(token = "") {
@@ -47,9 +58,9 @@ class ConverterConfig {
         return this._serverUrl;
     }
 
-    setVoice(voice = Voice.NOETIC) {
-        if (!(voice instanceof Voice)) {
-            throw new TypeError("Parameter 'voice(Voice)' type error.");
+    setVoice(voice) {
+        if (this.voiceValues.includes(voice) != true) {
+            throw new TypeError("Parameter 'voice(Voice)' type or value error.");
         }
         this.voice = voice;
     }

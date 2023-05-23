@@ -17,6 +17,7 @@ class TextEditor {
     constructor(text = []) {
         this.text = text;
         this._textLimit = new Settings().textLimit;
+        this._elasticValue = new Settings().elasticValue;
         this._supportFileType = new Settings().supportFileType;
     }
 
@@ -82,7 +83,7 @@ class TextEditor {
             splitPosition += limit;
         }
 
-        if (this._countReservedWord(text.slice(mergeStartPosition)) > 200) {
+        if (this._countReservedWord(text.slice(mergeStartPosition)) > this._elasticValue) { // elasticValue = 200
             throw new Error("Use too much reserved word.")
         }
 
@@ -254,10 +255,12 @@ class TextEditor {
         }
 
         const textList = this._checkTextLength(text);
+
         const limit = this._textLimit;
         let count = 0;
-
         for (let textEach of textList) {
+            textEach.update(this._checkReservedWord(textEach._text));
+
             let tags = [...textEach._text.matchAll(/\[:([\s\S]*?)\]/g)];
             let length = textEach._length;
 
@@ -296,7 +299,6 @@ class TextEditor {
                     let break_time = parseFloat(textEach._text.slice(tagStart + 2, tagEnd - 2)) * 1000;
                     new_tag = this._addBreak(break_time);
                     new_text = new_text.slice(0, tagStart + shift) + new_tag + new_text.slice(tagEnd + shift);
-                    console.log(new_text);
                 } else {
                     if (textEach._text[tag.index - 1] === "]") { // XXX workaround 判斷機制能再改
                         new_tag = "";
@@ -307,7 +309,6 @@ class TextEditor {
                     new_tag = this._addPhoneme(word, ph);
                     new_text = new_text.slice(0, tagStart + shift - 1) + new_tag + new_text.slice(tagEnd + shift);
                     shift--;
-                    console.log(new_text);
                 }
                 shift += new_tag.length - tagEnd + tagStart;
             }

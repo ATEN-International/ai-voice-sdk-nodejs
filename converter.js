@@ -79,8 +79,20 @@ class VoiceConverter {
         this._text = [];
         this._taskList = [];
         this._taskEachTextLimit = new Settings().eachTaskTextLimit;
-        this._apiHandler = new RestfulApiHandler(config);
+
+        this.config = new ConverterConfig();
+        this.updateConfig(config);
+        this._apiHandler = new RestfulApiHandler(this.config);
         this.text = new TextEditor(this._text);
+    }
+
+    _translateResultCode(resultJson) {
+        const code = resultJson['code'];
+        if (code in statusAndErrorCodes) {
+            return statusAndErrorCodes[code];
+        } else {
+            return resultJson['data'];
+        }
     }
 
     _createTaskList() {
@@ -114,20 +126,17 @@ class VoiceConverter {
         }
     }
 
-    _translateResultCode(resultJson) {
-        const code = resultJson['code'];
-        if (code in statusAndErrorCodes) {
-            return statusAndErrorCodes[code];
-        } else {
-            return resultJson['data'];
-        }
-    }
-
     /**
      * @param {ConverterConfig} config 轉換器設定檔
      */
-    updateConfig(config) {
-        this._apiHandler.updateConfig(config);
+    updateConfig(config = ConverterConfig()) {
+        console.log(typeof config.voice);
+        if (config.voice === undefined) {
+            throw new TypeError("Parameter 'config(ConverterConfig)' type error.");
+        }
+        this.config.setToken(config.getToken());
+        this.config.setServer(config.getServer());
+        this.config.setVoice(config.getVoice());
     }
 
     getTaskList() {

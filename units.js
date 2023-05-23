@@ -6,26 +6,22 @@ const { ConverterConfig: ConverterConfig, Settings: Settings } = require('./conf
 
 class RestfulApiHandler {
     constructor(config = ConverterConfig()) {
+        this._config = config;
         this.axios = axios;
 
-        this._serverUrl = config.getServer();
-        this._token = config.getToken();
-        this.voice = config.getVoice();
-        this._ssmlVersion = config.getSsmlVersion();
-        this._ssmlLang = config.getSsmlLang();
-
+        this._currentToken = this._config.getToken();
         this._serverSupportJsonStatusCode = [200, 400, 500, 503]; // 401 server回傳會少帶code參數，所以暫時移除
 
         this.httpConfig = {
             headers: {
-                'Authorization': 'Bearer ' + this._token,
+                'Authorization': 'Bearer ' + this._config.getToken(),
                 'Content-Type': 'application/json'
             }
         };
         this.httpConfigGetBinary = {
             responseType: 'arraybuffer',
             headers: {
-                'Authorization': 'Bearer ' + this._token,
+                'Authorization': 'Bearer ' + this._config.getToken(),
                 'Content-Type': 'application/json'
             }
         };
@@ -36,7 +32,29 @@ class RestfulApiHandler {
         // console.log(this._serverUrl, this._token, this.voice);
     }
 
+    _updateHeader() {
+        this.httpConfig = {
+            headers: {
+                'Authorization': 'Bearer ' + this._config.getToken(),
+                'Content-Type': 'application/json'
+            }
+        };
+        this.httpConfigGetBinary = {
+            responseType: 'arraybuffer',
+            headers: {
+                'Authorization': 'Bearer ' + this._config.getToken(),
+                'Content-Type': 'application/json'
+            }
+        };
+    }
+
     _restfulSender(apiUrl, payload, getBinary = false) {
+        if (this._config.getToken() !== this._currentToken) {
+            // console.log("Token change!!!");
+            this._currentToken = this._config.getToken();
+            this._updateHeader();
+        }
+
         let config = this.httpConfig;
         if (getBinary) {
             config = this.httpConfigGetBinary;
@@ -108,13 +126,15 @@ class RestfulApiHandler {
     }
 
     async addTextTask(text) {
-        if (this.voice === null) {
+        // if (this.voice === null) {
+        if (this._config.getVoice() === null) {
             throw new Error("Converter voice is null");
         }
 
         const apiPath = "/api/v1.0/syn/syn_text";
         const payload = {
-            "orator_name": this.voice,
+            // "orator_name": this.voice,
+            "orator_name": this._config.getVoice(),
             "text": text
         };
 
@@ -123,7 +143,8 @@ class RestfulApiHandler {
         }
 
         try {
-            const result = await this._restfulSender((this._serverUrl + apiPath), payload);
+            // const result = await this._restfulSender((this._serverUrl + apiPath), payload);
+            const result = await this._restfulSender((this._config.getServer() + apiPath), payload);
             return this._responseHandler(result);
         } catch (error) {
             return this._responseHandler(error);
@@ -131,14 +152,19 @@ class RestfulApiHandler {
     }
 
     async addSsmlTask(ssmlText) {
-        if (this.voice === null) {
+        // if (this.voice === null) {
+        if (this._config.getVoice() === null) {
             throw new Error("Converter voice is null");
+        }
+
+        if (this._config.voiceValues.includes(this._config.voice) != true) {
+            throw new Error(`Converter voice: ${this._config.voice}  is illegal.`);
         }
 
         const apiPath = "/api/v1.0/syn/syn_ssml";
         const payload = {
             "ssml": `<speak xmlns="http://www.w3.org/2001/10/synthesis" version=\
-"${this._ssmlVersion}" xml:lang="${this._ssmlLang}"><voice name="${this.voice}">\
+"${this._config.getSsmlVersion()}" xml:lang="${this._config.getSsmlLang()}"><voice name="${this._config.getVoice()}">\
 ${ssmlText}\
 </voice></speak>`
         };
@@ -148,7 +174,8 @@ ${ssmlText}\
         }
 
         try {
-            const result = await this._restfulSender((this._serverUrl + apiPath), payload);
+            // const result = await this._restfulSender((this._serverUrl + apiPath), payload);
+            const result = await this._restfulSender((this._config.getServer() + apiPath), payload);
             return this._responseHandler(result);
         } catch (error) {
             return this._responseHandler(error);
@@ -162,7 +189,8 @@ ${ssmlText}\
         };
 
         try {
-            const result = await this._restfulSender((this._serverUrl + apiPath), payload);
+            // const result = await this._restfulSender((this._serverUrl + apiPath), payload);
+            const result = await this._restfulSender((this._config.getServer() + apiPath), payload);
             return this._responseHandler(result);
         } catch (error) {
             return this._responseHandler(error);
@@ -176,7 +204,8 @@ ${ssmlText}\
         };
 
         try {
-            const result = await this._restfulSender((this._serverUrl + apiPath), payload, true);
+            // const result = await this._restfulSender((this._serverUrl + apiPath), payload, true);
+            const result = await this._restfulSender((this._config.getServer() + apiPath), payload, true);
             if (result.headers["content-type"] === "audio/wav") {
                 return { "data": result.data, "code": 20001 };
             } else {
@@ -185,14 +214,6 @@ ${ssmlText}\
         } catch (error) {
             return this._responseHandler(error);
         }
-    }
-
-    updateConfig(config = ConverterConfig()) {
-        this._serverUrl = config.getServer();
-        this._token = config.getToken();
-        this.voice = config.getVoice();
-        this._ssmlVersion = config.getSsmlVersion();
-        this._ssmlLang = config.getSsmlLang();
     }
 }
 
