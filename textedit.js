@@ -710,7 +710,12 @@ class TextEditor {
         }
 
         let text = new Tools().openFile(filePath, encode);
-        this.addText(text, position);
+
+        if (extension === ".ssml" || extension === ".xml") {
+            this.addSsmlText(text, position);
+        } else {
+            this.addText(text, position);
+        }
     }
 }
 

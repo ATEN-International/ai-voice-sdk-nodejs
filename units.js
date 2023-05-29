@@ -59,10 +59,10 @@ class RestfulApiHandler {
         // Return Promise Object
         return this.axios.post(apiUrl, payload, config)
             .then(response => {
-                return response
+                return response;
             })
             .catch(error => {
-                throw error
+                throw error;
             });
     }
 

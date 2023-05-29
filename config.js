@@ -4,7 +4,7 @@ class Settings {
     constructor() {
         this.textLimit = 1500;
         this.elasticValue = 200;
-        this.supportFileType = [".txt"];
+        this.supportFileType = [".txt", ".ssml", ".xml"];
         this.eachTaskTextLimit = this.textLimit + this.elasticValue;
         this.printLog = false;
     }
