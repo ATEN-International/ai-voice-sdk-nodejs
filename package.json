@@ -13,7 +13,8 @@
     "mime-db": "^1.52.0",
     "mime-types": "^2.1.35",
     "proxy-from-env": "^1.1.0",
-    "wavefile": "^11.0.0"
+    "wavefile": "^11.0.0",
+    "xmldom": "^0.6.0"
   },
   "devDependencies": {},
   "scripts": {

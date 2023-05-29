@@ -1,3 +1,5 @@
+const { DOMParser } = require('xmldom');
+
 const Settings = require('./config').Settings;
 const Tools = require('./units').Tools;
 
@@ -195,6 +197,150 @@ class TextEditor {
         return `<prosody${tagRate}${tagPitch}${tagVolume}>${text}</prosody>`;
     }
 
+    /**
+     * @param {object} element 套件解析後的element node
+     * @param {number} layer 第幾層的節點(default layer = 1)
+     */
+    _getSsmlAllTags(element, layer = 1) {
+        let ssmlTags = [];
+        let tag = element.tagName;
+        let attrib = {};
+        let text = "";
+
+        // 如果有element有childNodes，且數量大於等於1個
+        if (element.childNodes && element.childNodes.length >= 1) {
+            if ((element.childNodes[0].nodeType === element.TEXT_NODE) && (element.childNodes[0].data !== undefined)) {
+                text = element.childNodes[0].data;
+            }
+        }
+
+        if (element.attributes) {
+            for (let i = 0; i < element.attributes.length; i++) {
+                // 也可以用element.getAttribute()，但需要知道標籤名稱
+                attrib[element.attributes[i].name] = element.attributes[i].value;
+            }
+        }
+
+        ssmlTags.push({ "layer": layer, "tag": tag, "attrib": attrib, "text": text });
+
+        if (element.childNodes) {
+            for (let i = 0; i < element.childNodes.length; i++) {
+                if (element.childNodes[i].nodeType === element.TEXT_NODE) {
+                    if (element.childNodes[i].data !== undefined) {
+                        if (i !== 0) {
+                            ssmlTags.push({ "layer": layer, "tag": "tail", "attrib": null, "text": element.childNodes[i].data });
+                        }
+                    }
+                } else if (element.childNodes[i].nodeType === element.ELEMENT_NODE) {
+                    ssmlTags.splice(ssmlTags.length, 0, ...this._getSsmlAllTags(element.childNodes[i], layer + 1));
+                } else {
+                    console.log("Ignore part.");
+                }
+            }
+        }
+        return ssmlTags;
+    }
+
+    _ssmlTagToText(ssmlTag) {
+        if (ssmlTag.tag === "voice") {
+            return ssmlTag.text;
+        } else if (ssmlTag.tag === "phoneme") {
+            return this._addPhoneme(ssmlTag.text, ssmlTag.attrib.ph);
+        } else if (ssmlTag.tag === "break") {
+            return this._addBreak(parseInt(ssmlTag.attrib.time.slice(0, ssmlTag.attrib.time.length - 2)))
+        } else if (ssmlTag.tag === "prosody") {
+            return this._addProsody(ssmlTag.text, parseFloat(ssmlTag.attrib.rate.slice(0, ssmlTag.attrib.rate.length - 2)), parseInt(ssmlTag.attrib.pitch.slice(0, ssmlTag.attrib.pitch.length - 2)), parseFloat(ssmlTag.attrib.volume.slice(0, ssmlTag.attrib.volume.length - 2)));
+        } else if (ssmlTag.tag === "tail") {
+            return ssmlTag.text;
+        } else {
+            return "";
+        }
+    }
+
+    _formatSsmlText(ssml_element) {
+        const limit = this._textLimit;
+
+        let ssmlTagList = this._getSsmlAllTags(ssml_element, 1);
+        let textList = [""];
+
+        let count = 0;
+        let length = 0;
+        let i = 0;
+        let isProsody = false;
+        let prosodyLayer = 1;
+        let prosodyTagInfo = "";
+
+        let ssmlTagListAfterCheckLength = [];
+        for (let tag of ssmlTagList) {
+            let textParagraphList = this._checkTextLength(tag.text);
+
+            for (let text of textParagraphList) {
+                ssmlTagListAfterCheckLength.push({ "layer": tag['layer'], "tag": tag['tag'], "attrib": tag['attrib'], "text": this._checkReservedWord(text._text) });
+            }
+        }
+
+        for (i = 0; i < (ssmlTagListAfterCheckLength.length - 1); i++) {
+            let ssmlText = this._ssmlTagToText(ssmlTagListAfterCheckLength[i]);
+            if (ssmlTagListAfterCheckLength[i].tag === "prosody") {
+                // 偵測到prosody tag，針對prosody情境處裡tag
+                isProsody = true;
+
+                prosodyLayer = ssmlTagListAfterCheckLength[i].layer;
+                ssmlText = ssmlText.slice(0, ssmlText.lastIndexOf("</prosody")); // 移除 '</prosody>'
+                prosodyTagInfo = ssmlText.slice(0, ssmlText.indexOf(">") + 1);
+                // console.log("--> start", prosody_start_tag, ssml_text);
+            }
+
+            length = length + ssmlText.length;
+            textList[count] = textList[count] + ssmlText;
+
+            if (isProsody === true) {
+                if (ssmlTagListAfterCheckLength[i + 1].layer <= prosodyLayer) {
+                    if ((ssmlTagListAfterCheckLength[i + 1].layer === prosodyLayer) && (ssmlTagListAfterCheckLength[i + 1].tag === "tail")) {
+                        // console.log("Do nothing.");
+                    } else {
+                        // 偵測prosody tag結尾
+                        isProsody = false;
+                        prosodyTagInfo = "";
+                        // console.log("--> add end tad </prosody>");
+                        length = length + "</prosody>".length;
+                        textList[count] = textList[count] + "</prosody>";
+                    }
+                }
+            }
+
+            if ((length + this._ssmlTagToText(ssmlTagListAfterCheckLength[i + 1]) > limit)) {
+                // Add new text element
+                textList.push("");
+                count = count + 1;
+                length = 0;
+
+                // Add prosody end tag to previous text
+                if (isProsody === true) {
+                    textList[count - 1] = textList[count - 1] + "</prosody>";
+                    textList[count] = textList[count] + prosodyTagInfo; // Add prosody header tag
+                }
+                // ========================================
+            }
+        }
+
+        let endSymbol = "";
+        if (isProsody === true) {
+            endSymbol = "</prosody>";
+        }
+
+        let lastText = this._ssmlTagToText(ssmlTagListAfterCheckLength[i]);
+        if ((length + lastText.length) > limit) {
+            textList[count] = textList[count] + endSymbol;
+            textList.push((prosodyTagInfo + lastText + endSymbol));
+        } else {
+            textList[count] = textList[count] + lastText + endSymbol;
+        }
+
+        console.log(textList);
+        return textList;
+    }
+
     // ---------- Text ----------
     /**
      * @param {string} text 加入的文字
@@ -314,6 +460,36 @@ class TextEditor {
             }
             textList[count].update(this._addProsody(new_text, rate, pitch, volume));
             count++;
+        }
+        this.text.splice(position, 0, ...textList);
+    }
+
+    addSsmlText(text, position = -1) {
+        if (typeof (position) !== 'number') {
+            throw new TypeError("Parameter 'position(int)' type error.");
+        }
+        if (typeof text !== 'string') {
+            throw new TypeError("Parameter 'text(str)' type error.");
+        }
+
+        const parser = new DOMParser();
+        let ssmlElementRoot;
+        let ssmlText;
+        try {
+            ssmlElementRoot = parser.parseFromString(text, 'application/xml').documentElement;
+            ssmlText = this._formatSsmlText(ssmlElementRoot);
+        } catch (error) {
+            throw new Error("Read ssml string fail.");
+        }
+
+        let textList = [];
+
+        if (position === -1) {
+            position = this.text.length + 1;
+        }
+
+        for (let text of ssmlText) {
+            textList.push(new TextParagraph(text));
         }
         this.text.splice(position, 0, ...textList);
     }
