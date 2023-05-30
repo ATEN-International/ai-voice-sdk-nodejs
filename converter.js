@@ -48,7 +48,7 @@ class ConverterResult {
     async save(filename = "aivoice", isMerge = false) {
         let task_list_length = this.taskData.length;
         if (task_list_length > 0) {
-            if (isMerge & task_list_length > 1) {
+            if (isMerge === true && task_list_length > 1) {
                 let audioData = []
                 for (let each_data of this.taskData) {
                     if (each_data.data === null) {
@@ -86,10 +86,9 @@ class VoiceConverter {
         this._taskList = [];
         this._taskEachTextLimit = new Settings().eachTaskTextLimit;
 
-        this.config = new ConverterConfig();
-        this.updateConfig(config);
+        this.config = Object.assign(new ConverterConfig(), config);
         this._apiHandler = new RestfulApiHandler(this.config);
-        this.text = new TextEditor(this._text);
+        this.text = new TextEditor(this._text, this.config, this._updateConfigValue.bind(this));
     }
 
     _translateResultCode(resultJson) {
@@ -132,11 +131,25 @@ class VoiceConverter {
         }
     }
 
+    _voiceValueToName(voiceValue) {
+        for (let vo in Voice) {
+            if (Voice[vo] === voiceValue) {
+                return Voice[vo];
+            }
+        }
+    }
+
+    _updateConfigValue(value) {
+        // For text editor update converter config
+        if (this.config.getVoice() === null) {
+            this.config.setVoice(this._voiceValueToName(value.config_voice));
+        }
+    }
+
     /**
      * @param {ConverterConfig} config 轉換器設定檔
      */
     updateConfig(config = ConverterConfig()) {
-        console.log(typeof config.voice);
         if (config.voice === undefined) {
             throw new TypeError("Parameter 'config(ConverterConfig)' type error.");
         }

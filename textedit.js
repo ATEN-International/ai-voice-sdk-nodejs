@@ -16,11 +16,14 @@ class TextParagraph {
 }
 
 class TextEditor {
-    constructor(text = []) {
+    constructor(text = [], config, callback) {
         this.text = text;
+        this._config = config;
         this._textLimit = new Settings().textLimit;
         this._elasticValue = new Settings().elasticValue;
         this._supportFileType = new Settings().supportFileType;
+
+        this._noticeValueUpdate = callback === undefined ? null : callback;
     }
 
     _checkReservedWord(text) {
@@ -272,6 +275,13 @@ class TextEditor {
 
         let ssmlTagListAfterCheckLength = [];
         for (let tag of ssmlTagList) {
+            // check is get voice tag and call converter to update config info as the same time
+            if (tag.tag === "voice") {
+                if (this._noticeValueUpdate !== null) {
+                    this._noticeValueUpdate({ "config_voice": tag.attrib.name });
+                }
+            }
+
             let textParagraphList = this._checkTextLength(tag.text);
 
             for (let text of textParagraphList) {
