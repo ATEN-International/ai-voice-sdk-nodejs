@@ -1,18 +1,10 @@
 {
   "name": "ai-voice-sdk",
   "version": "0.0.1",
-  "description": "<br>",
+  "description": "Aten AI Voice SDK <br>",
   "main": "index.js",
   "dependencies": {
     "axios": "^1.3.5",
-    "asynckit": "^0.4.0",
-    "combined-stream": "^1.0.8",
-    "delayed-stream": "^1.0.0",
-    "follow-redirects": "^1.15.2",
-    "form-data": "^4.0.0",
-    "mime-db": "^1.52.0",
-    "mime-types": "^2.1.35",
-    "proxy-from-env": "^1.1.0",
     "wavefile": "^11.0.0",
     "xmldom": "^0.6.0"
   },
@@ -25,6 +17,6 @@
     "url": "http://10.3.56.81:8088/yimin/ai-voice-sdk-nodejs.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "author": "ATEN-International",
+  "license": "MIT"
 }

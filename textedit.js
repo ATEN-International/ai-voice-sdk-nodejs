@@ -347,7 +347,6 @@ class TextEditor {
             textList[count] = textList[count] + lastText + endSymbol;
         }
 
-        console.log(textList);
         return textList;
     }
 
