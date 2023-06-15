@@ -8,7 +8,6 @@
  - [開始使用](#開始使用)
     - [安裝](#安裝)
     - [教學課程](#教學課程-tutorial)
-    - [更多範例](#更多範例-coming-soon)
 
 <br><br>
 
@@ -38,7 +37,4 @@ API == v1.x
 <br><br>
 
 ### 教學課程 [tutorial](./tutorial.md)
-<br><br>
-
-### 更多範例 (Coming soon)
 <br><br>
