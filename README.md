@@ -33,7 +33,11 @@ API == v1.x
 ## 開始使用
 
 ### 安裝
- - 透過`npm`安裝套件 (Coming soon)
+ - 透過`npm`安裝套件
+```
+npm i ai-voice-sdk
+```
+
 <br><br>
 
 ### 教學課程 [tutorial](./tutorial.md)
